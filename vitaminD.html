@@ -4,108 +4,83 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vitamin D Tracker</title>
-  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Using a base font for a clean, modern look */
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0;
-      background: #f5f5f7;
-      color: #333;
-    }
-    header {
-      background: #007AFF;
-      color: white;
-      padding: 14px;
-      text-align: center;
-      font-size: 20px;
-      font-weight: 600;
-    }
-    main {
-      padding: 16px;
-    }
-    form {
-      background: white;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    form label {
-      display: block;
-      margin: 10px 0 4px;
-      font-weight: 500;
-    }
-    form input, form select, form button {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-    form button {
-      background: #007AFF;
-      color: white;
-      border: none;
-      font-weight: 600;
-    }
-    .record-card {
-      background: white;
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 14px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .record-card div {
-      margin: 4px 0;
-    }
-    .record-card strong {
-      display: inline-block;
-      width: 90px;
-      color: #555;
-    }
-    .record-card button {
-      margin-top: 8px;
-      padding: 8px 12px;
-      background: #FF3B30;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      font-size: 14px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
   </style>
 </head>
-<body>
-  <header>☀️ Vitamin D Tracker</header>
-  <main>
-    <form id="exposureForm">
-      <label for="date">Date</label>
-      <input type="date" id="date" required>
+<body class="bg-gray-100 text-gray-800">
 
-      <label for="startTime">Start Time</label>
-      <input type="time" id="startTime" required>
+  <header class="bg-blue-600 text-white p-4 text-center shadow-md">
+    <h1 class="text-2xl font-bold">☀️ Vitamin D Tracker</h1>
+  </header>
 
-      <label for="endTime">End Time</label>
-      <input type="time" id="endTime" required>
+  <main class="p-4 max-w-2xl mx-auto">
+    <!-- Toggle Button for the form -->
+    <button id="toggleFormBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-sm transition-transform transform hover:scale-105 mb-4">
+      Add New Exposure Record
+    </button>
 
-      <label for="skinType">Skin Type</label>
-      <select id="skinType" required>
-        <option value="I">Type I (Very Fair)</option>
-        <option value="II">Type II (Fair)</option>
-        <option value="III">Type III (Medium)</option>
-        <option value="IV">Type IV (Olive)</option>
-        <option value="V">Type V (Brown)</option>
-        <option value="VI">Type VI (Dark Brown/Black)</option>
-      </select>
+    <!-- Form container, hidden by default -->
+    <div id="formContainer" class="hidden mb-6">
+      <form id="exposureForm" class="bg-white p-6 rounded-xl shadow-lg space-y-4">
+        <div>
+          <label for="date" class="block text-sm font-medium text-gray-700">Date</label>
+          <input type="date" id="date" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
 
-      <label for="uv">UV Index (leave blank for auto)</label>
-      <input type="number" id="uv" min="0" step="0.1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="startTime" class="block text-sm font-medium text-gray-700">Start Time</label>
+            <input type="time" id="startTime" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label for="endTime" class="block text-sm font-medium text-gray-700">End Time</label>
+            <input type="time" id="endTime" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          </div>
+        </div>
 
-      <button type="submit">Add Exposure</button>
-    </form>
+        <div>
+          <label for="skinType" class="block text-sm font-medium text-gray-700">Skin Type</label>
+          <select id="skinType" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+            <option value="I">Type I (Very Fair)</option>
+            <option value="II">Type II (Fair)</option>
+            <option value="III">Type III (Medium)</option>
+            <option value="IV">Type IV (Olive)</option>
+            <option value="V">Type V (Brown)</option>
+            <option value="VI">Type VI (Dark Brown/Black)</option>
+          </select>
+        </div>
 
-    <h2>My Records</h2>
-    <div id="records"></div>
+        <div>
+          <label for="uv" class="block text-sm font-medium text-gray-700">UV Index (leave blank for auto-detection)</label>
+          <input type="number" id="uv" min="0" step="0.1" placeholder="e.g., 6.5" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-sm transition-transform transform hover:scale-105">
+          Add Exposure
+        </button>
+      </form>
+    </div>
+    
+    <!-- Weekly Summary Card -->
+    <div id="summaryCard" class="bg-white p-5 rounded-xl shadow-lg mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">This Week's Summary</h3>
+        <p class="text-3xl font-bold text-blue-600"><span id="weeklyTotalIU">0</span> IU</p>
+        <p class="text-sm text-gray-500">Total estimated Vitamin D intake this week (Sun-Sat).</p>
+    </div>
+
+
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold">My Records</h2>
+        <button id="downloadCsvBtn" class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg shadow-sm text-sm">
+            Download CSV
+        </button>
+    </div>
+    <div id="records" class="space-y-4"></div>
   </main>
 
   <script>
@@ -121,6 +96,22 @@
       db = e.target.result;
       displayRecords();
     };
+    
+    request.onerror = e => {
+      console.error("IndexedDB error:", e.target.error);
+    };
+
+    // --- Event Listeners ---
+    document.getElementById("toggleFormBtn").addEventListener("click", () => {
+        const formContainer = document.getElementById("formContainer");
+        const isHidden = formContainer.classList.contains('hidden');
+        formContainer.classList.toggle('hidden');
+        if (isHidden) {
+            document.getElementById("toggleFormBtn").textContent = "Close Form";
+        } else {
+            document.getElementById("toggleFormBtn").textContent = "Add New Exposure Record";
+        }
+    });
 
     document.getElementById("exposureForm").addEventListener("submit", async e => {
       e.preventDefault();
@@ -132,40 +123,81 @@
 
       if (!uv) {
         uv = await getUVFromLocation(date, startTime);
+        // Also update the input field so user sees the value
+        document.getElementById("uv").value = uv;
       }
 
       const duration = calcMinutes(startTime, endTime);
       const iu = estimateVitaminD(uv, duration, skinType);
 
       const tx = db.transaction("exposures", "readwrite");
-      tx.objectStore("exposures").add({ date, startTime, endTime, skinType, uv, duration, iu });
-      tx.oncomplete = displayRecords;
-
-      e.target.reset();
+      const store = tx.objectStore("exposures");
+      store.add({ date, startTime, endTime, skinType, uv, duration, iu });
+      
+      tx.oncomplete = () => {
+        displayRecords();
+        // Reset and hide form
+        e.target.reset();
+        document.getElementById("uv").value = ''; // Clear auto-filled UV
+        document.getElementById("formContainer").classList.add('hidden');
+        document.getElementById("toggleFormBtn").textContent = "Add New Exposure Record";
+      };
     });
 
+    document.getElementById('downloadCsvBtn').addEventListener('click', downloadCSV);
+
+
+    // --- Core Functions ---
     function displayRecords() {
+      if (!db) return;
       const tx = db.transaction("exposures", "readonly");
       const store = tx.objectStore("exposures");
       const req = store.getAll();
+
       req.onsuccess = () => {
+        const records = req.result.sort((a,b) => new Date(b.date) - new Date(a.date)); // Sort by most recent
         const recordsDiv = document.getElementById("records");
         recordsDiv.innerHTML = "";
-        req.result.forEach(r => {
-          const card = document.createElement("div");
-          card.className = "record-card";
-          card.innerHTML = `
-            <div><strong>Date:</strong> ${r.date}</div>
-            <div><strong>Start:</strong> ${r.startTime}</div>
-            <div><strong>End:</strong> ${r.endTime}</div>
-            <div><strong>UV:</strong> ${r.uv}</div>
-            <div><strong>Skin:</strong> ${r.skinType}</div>
-            <div><strong>IU:</strong> ${r.iu}</div>
-            <button onclick="deleteRecord(${r.id})">Delete</button>
-          `;
-          recordsDiv.appendChild(card);
-        });
+        
+        if (records.length === 0) {
+            recordsDiv.innerHTML = `<div class="bg-white p-6 rounded-xl shadow-md text-center text-gray-500">No records found. Add one to get started!</div>`;
+        } else {
+            records.forEach(r => {
+              const card = document.createElement("div");
+              card.className = "record-card bg-white p-4 rounded-xl shadow-md transition-shadow hover:shadow-lg";
+              card.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="font-bold text-lg">${r.date}</div>
+                        <div class="text-sm text-gray-500">${r.startTime} - ${r.endTime} (${r.duration} mins)</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-extrabold text-2xl text-blue-600">${r.iu.toLocaleString()} IU</div>
+                        <div class="text-xs text-gray-500">UV Index: ${r.uv} / Skin: ${r.skinType}</div>
+                    </div>
+                </div>
+                <button onclick="deleteRecord(${r.id})" class="mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-full text-xs transition-transform transform hover:scale-105">Delete</button>
+              `;
+              recordsDiv.appendChild(card);
+            });
+        }
+
+        // Calculate and display weekly total
+        updateWeeklySummary(records);
       };
+    }
+
+    function updateWeeklySummary(records) {
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // Sunday is 0, Saturday is 6
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - dayOfWeek);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const weeklyRecords = records.filter(r => new Date(r.date) >= startOfWeek);
+        const weeklyTotal = weeklyRecords.reduce((sum, r) => sum + r.iu, 0);
+        
+        document.getElementById('weeklyTotalIU').textContent = weeklyTotal.toLocaleString();
     }
 
     function deleteRecord(id) {
@@ -184,50 +216,79 @@
       uv = parseFloat(uv) || 0;
       const factors = { I: 1.5, II: 1.3, III: 1, IV: 0.8, V: 0.6, VI: 0.5 };
       const factor = factors[skinType] || 1;
-      return Math.round(uv * minutes * factor * 10);
+      return Math.round(uv * minutes * factor * 25); // Adjusted multiplier for more realistic IU
     }
-
+    
+    // --- API and Utility Functions ---
     async function getUVFromLocation(date, time) {
-        return new Promise((resolve, reject) => {
-            // For testing Chennai specifically, you can hardcode coordinates:
-            // const lat = 13.0827; // Chennai Latitude
-            // const lon = 80.2707; // Chennai Longitude
-            // The following line uses the user's actual current location.
-            navigator.geolocation.getCurrentPosition(async pos => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                // ---- FIX IS HERE ----
-                // Added "&timezone=auto" to the URL
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=uv_index&start_date=${date}&end_date=${date}&timezone=auto`;
-                
-                try {
-                    const res = await fetch(url);
-                    if (!res.ok) {
-                        // Handle cases where the API call fails
-                        console.error("API request failed:", res.status);
-                        resolve(0); // Return a default value
-                        return;
-                    }
-                    const data = await res.json();
-                    const hour = parseInt(time.split(":")[0]);
-
-                    // Check if data and the specific hourly array exist
-                    if (data && data.hourly && data.hourly.uv_index) {
-                        resolve(data.hourly.uv_index[hour] || 0);
-                    } else {
-                        console.error("Invalid data format from API:", data);
-                        resolve(0); // Return a default value
-                    }
-                } catch (error) {
-                    console.error("Error fetching UV data:", error);
-                    resolve(0); // Return a default value on network error etc.
-                }
-            }, err => {
-                console.error("Geolocation error:", err);
-                resolve(0); // Failsafe if user denies location
-            });
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          alert("Geolocation is not supported by your browser. Please enter UV index manually.");
+          resolve(0);
+        }
+        navigator.geolocation.getCurrentPosition(async pos => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          // CORRECTED: Added timezone=auto to get local time data
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=uv_index&start_date=${date}&end_date=${date}&timezone=auto`;
+          
+          try {
+            const res = await fetch(url);
+            const data = await res.json();
+            const hour = parseInt(time.split(":")[0]);
+            resolve(data.hourly.uv_index[hour] || 0);
+          } catch (error) {
+            console.error("Failed to fetch UV data:", error);
+            resolve(0); // Resolve with 0 if API fails
+          }
+        }, err => {
+            console.error("Geolocation error:", err.message);
+            alert("Could not get your location. Please enable location services or enter UV index manually.");
+            resolve(0);
         });
+      });
     }
+
+    function downloadCSV() {
+        const tx = db.transaction("exposures", "readonly");
+        const store = tx.objectStore("exposures");
+        const req = store.getAll();
+
+        req.onsuccess = () => {
+            const records = req.result;
+            if (records.length === 0) {
+                alert("No records to download.");
+                return;
+            }
+
+            const headers = "Date,StartTime,EndTime,Duration(min),SkinType,UV_Index,Estimated_IU";
+            const csvRows = [headers];
+
+            records.forEach(r => {
+                const row = [r.date, r.startTime, r.endTime, r.duration, r.skinType, r.uv, r.iu].join(',');
+                csvRows.push(row);
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            
+            const link = document.createElement('a');
+            if (link.download !== undefined) { 
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", "vitamin-d-records.csv");
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
+        req.onerror = (e) => {
+            console.error("Error fetching records for CSV download:", e.target.error);
+        }
+    }
+
   </script>
 </body>
 </html>
