@@ -1,168 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vitamin D Tracker</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#4CAF50" />
+  <link rel="manifest" href="manifest.json">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin:0; background:#f4f4f4; color:#333; }
-    header { background:#4CAF50; color:white; padding:15px; text-align:center; font-size:1.2em; }
-    .container { padding:15px; }
-    .card { background:white; border-radius:12px; padding:15px; margin-bottom:15px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
-    label { font-weight:bold; display:block; margin-top:10px; }
-    input, select { width:100%; padding:10px; margin-top:5px; border:1px solid #ccc; border-radius:8px; font-size:1em; }
-    button { width:100%; background:#4CAF50; color:white; padding:12px; margin-top:15px; border:none; border-radius:8px; font-size:1em; cursor:pointer; }
-    button:hover { background:#45a049; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { padding:8px; border-bottom:1px solid #ddd; font-size:0.9em; text-align:center; }
-    th { background:#4CAF50; color:white; }
-    .actions button { padding:5px; margin:2px; font-size:0.8em; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      background: #f5f5f7;
+      color: #333;
+    }
+    header {
+      background: #007AFF;
+      color: white;
+      padding: 14px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    main {
+      padding: 16px;
+    }
+    form {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    form label {
+      display: block;
+      margin: 10px 0 4px;
+      font-weight: 500;
+    }
+    form input, form select, form button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    form button {
+      background: #007AFF;
+      color: white;
+      border: none;
+      font-weight: 600;
+    }
+    .record-card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .record-card div {
+      margin: 4px 0;
+    }
+    .record-card strong {
+      display: inline-block;
+      width: 90px;
+      color: #555;
+    }
+    .record-card button {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #FF3B30;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+    }
   </style>
-  <script>
-    let db;
-    const skinFactors = { I:1.0, II:0.9, III:0.75, IV:0.6, V:0.4, VI:0.2 };
-
-    document.addEventListener("DOMContentLoaded", () => {
-      let request = indexedDB.open("VitaminDDB", 2);
-      request.onupgradeneeded = e => {
-        db = e.target.result;
-        if (!db.objectStoreNames.contains("sessions")) {
-          db.createObjectStore("sessions", { keyPath: "id", autoIncrement: true });
-        }
-      };
-      request.onsuccess = e => { db = e.target.result; loadSessions(); };
-
-      document.getElementById("trackerForm").addEventListener("submit", saveSession);
-      document.getElementById("downloadCSV").addEventListener("click", downloadCSV);
-    });
-
-    async function fetchUVIndex(date, time, lat, lon) {
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=uv_index&start_date=${date}&end_date=${date}`;
-        let response = await fetch(url);
-        let data = await response.json();
-        let hour = parseInt(time.split(":")[0]);
-        return data.hourly.uv_index[hour];
-      } catch (e) { console.error("UV fetch error", e); return null; }
-    }
-
-    function getLocation() {
-      return new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          pos => resolve({lat:pos.coords.latitude, lon:pos.coords.longitude}),
-          err => reject(err)
-        );
-      });
-    }
-
-    async function saveSession(e) {
-      e.preventDefault();
-      let date = document.getElementById("date").value;
-      let start = document.getElementById("start").value;
-      let end = document.getElementById("end").value;
-      let uv = document.getElementById("uv").value;
-      let skin = document.getElementById("skin").value;
-
-      // calc duration
-      let [sh, sm] = start.split(":").map(Number);
-      let [eh, em] = end.split(":").map(Number);
-      let duration = (eh*60+em) - (sh*60+sm);
-      if (duration < 0) duration += 1440; // overnight case
-
-      // fetch UV if not entered
-      if (!uv) {
-        try {
-          let {lat, lon} = await getLocation();
-          uv = await fetchUVIndex(date, start, lat, lon);
-        } catch { uv = null; }
-      }
-      uv = parseFloat(uv || 0);
-
-      // calc Vitamin D IU (rough)
-      let iu = Math.round(uv * duration * skinFactors[skin]);
-
-      let tx = db.transaction("sessions", "readwrite");
-      let store = tx.objectStore("sessions");
-      store.add({ date, start, end, uv, skin, duration, iu });
-      tx.oncomplete = () => loadSessions();
-
-      document.getElementById("trackerForm").reset();
-    }
-
-    function loadSessions() {
-      let tx = db.transaction("sessions", "readonly");
-      let store = tx.objectStore("sessions");
-      let req = store.getAll();
-      req.onsuccess = () => {
-        let sessions = req.result;
-        let table = document.getElementById("dataTable");
-        table.innerHTML = "<tr><th>Date</th><th>Start</th><th>End</th><th>UV</th><th>Skin</th><th>Duration (min)</th><th>Vit D (IU)</th><th>Actions</th></tr>";
-        sessions.forEach(s => {
-          table.innerHTML += `<tr>
-            <td>${s.date}</td><td>${s.start}</td><td>${s.end}</td>
-            <td>${s.uv ?? ""}</td><td>${s.skin}</td><td>${s.duration}</td><td>${s.iu}</td>
-            <td class="actions">
-              <button onclick="deleteSession(${s.id})">❌</button>
-            </td>
-          </tr>`;
-        });
-      };
-    }
-
-    function deleteSession(id) {
-      let tx = db.transaction("sessions", "readwrite");
-      let store = tx.objectStore("sessions");
-      store.delete(id);
-      tx.oncomplete = () => loadSessions();
-    }
-
-    function downloadCSV() {
-      let tx = db.transaction("sessions", "readonly");
-      let store = tx.objectStore("sessions");
-      let req = store.getAll();
-      req.onsuccess = () => {
-        let sessions = req.result;
-        let csv = "Date,Start,End,UV,Skin,Duration,VitD_IU\\n";
-        sessions.forEach(s => {
-          csv += `${s.date},${s.start},${s.end},${s.uv},${s.skin},${s.duration},${s.iu}\\n`;
-        });
-        let blob = new Blob([csv], { type:"text/csv" });
-        let a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "vitaminD.csv";
-        a.click();
-      };
-    }
-  </script>
 </head>
 <body>
-  <header>🌞 Vitamin D Tracker</header>
-  <div class="container">
-    <div class="card">
-      <form id="trackerForm">
-        <label>Date: <input type="date" id="date" required></label>
-        <label>Start Time: <input type="time" id="start" required></label>
-        <label>End Time: <input type="time" id="end" required></label>
-        <label>Skin Type:
-          <select id="skin" required>
-            <option value="I">I - Very Fair</option>
-            <option value="II">II - Fair</option>
-            <option value="III" selected>III - Medium</option>
-            <option value="IV">IV - Olive</option>
-            <option value="V">V - Brown</option>
-            <option value="VI">VI - Dark Brown/Black</option>
-          </select>
-        </label>
-        <label>UV Index (leave empty for auto): <input type="number" step="0.1" id="uv"></label>
-        <button type="submit">➕ Save Session</button>
-      </form>
-    </div>
-    <div class="card">
-      <button id="downloadCSV">⬇️ Export CSV</button>
-      <table id="dataTable"></table>
-    </div>
-  </div>
+  <header>☀️ Vitamin D Tracker</header>
+  <main>
+    <form id="exposureForm">
+      <label for="date">Date</label>
+      <input type="date" id="date" required>
+
+      <label for="startTime">Start Time</label>
+      <input type="time" id="startTime" required>
+
+      <label for="endTime">End Time</label>
+      <input type="time" id="endTime" required>
+
+      <label for="skinType">Skin Type</label>
+      <select id="skinType" required>
+        <option value="I">Type I (Very Fair)</option>
+        <option value="II">Type II (Fair)</option>
+        <option value="III">Type III (Medium)</option>
+        <option value="IV">Type IV (Olive)</option>
+        <option value="V">Type V (Brown)</option>
+        <option value="VI">Type VI (Dark Brown/Black)</option>
+      </select>
+
+      <label for="uv">UV Index (leave blank for auto)</label>
+      <input type="number" id="uv" min="0" step="0.1">
+
+      <button type="submit">Add Exposure</button>
+    </form>
+
+    <h2>My Records</h2>
+    <div id="records"></div>
+  </main>
+
+  <script>
+    let db;
+    const request = indexedDB.open("vitaminDDB", 1);
+
+    request.onupgradeneeded = e => {
+      db = e.target.result;
+      db.createObjectStore("exposures", { keyPath: "id", autoIncrement: true });
+    };
+
+    request.onsuccess = e => {
+      db = e.target.result;
+      displayRecords();
+    };
+
+    document.getElementById("exposureForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const date = document.getElementById("date").value;
+      const startTime = document.getElementById("startTime").value;
+      const endTime = document.getElementById("endTime").value;
+      const skinType = document.getElementById("skinType").value;
+      let uv = document.getElementById("uv").value;
+
+      if (!uv) {
+        uv = await getUVFromLocation(date, startTime);
+      }
+
+      const duration = calcMinutes(startTime, endTime);
+      const iu = estimateVitaminD(uv, duration, skinType);
+
+      const tx = db.transaction("exposures", "readwrite");
+      tx.objectStore("exposures").add({ date, startTime, endTime, skinType, uv, duration, iu });
+      tx.oncomplete = displayRecords;
+
+      e.target.reset();
+    });
+
+    function displayRecords() {
+      const tx = db.transaction("exposures", "readonly");
+      const store = tx.objectStore("exposures");
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const recordsDiv = document.getElementById("records");
+        recordsDiv.innerHTML = "";
+        req.result.forEach(r => {
+          const card = document.createElement("div");
+          card.className = "record-card";
+          card.innerHTML = `
+            <div><strong>Date:</strong> ${r.date}</div>
+            <div><strong>Start:</strong> ${r.startTime}</div>
+            <div><strong>End:</strong> ${r.endTime}</div>
+            <div><strong>UV:</strong> ${r.uv}</div>
+            <div><strong>Skin:</strong> ${r.skinType}</div>
+            <div><strong>IU:</strong> ${r.iu}</div>
+            <button onclick="deleteRecord(${r.id})">Delete</button>
+          `;
+          recordsDiv.appendChild(card);
+        });
+      };
+    }
+
+    function deleteRecord(id) {
+      const tx = db.transaction("exposures", "readwrite");
+      tx.objectStore("exposures").delete(id);
+      tx.oncomplete = displayRecords;
+    }
+
+    function calcMinutes(start, end) {
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+      return (eh * 60 + em) - (sh * 60 + sm);
+    }
+
+    function estimateVitaminD(uv, minutes, skinType) {
+      uv = parseFloat(uv) || 0;
+      const factors = { I: 1.5, II: 1.3, III: 1, IV: 0.8, V: 0.6, VI: 0.5 };
+      const factor = factors[skinType] || 1;
+      return Math.round(uv * minutes * factor * 10);
+    }
+
+    async function getUVFromLocation(date, time) {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(async pos => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=uv_index&start_date=${date}&end_date=${date}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          const hour = parseInt(time.split(":")[0]);
+          resolve(data.hourly.uv_index[hour] || 0);
+        }, err => resolve(0));
+      });
+    }
+  </script>
 </body>
 </html>
