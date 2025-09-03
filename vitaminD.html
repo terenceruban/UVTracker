@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vitamin D Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4CAF50">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h1 { color: #4CAF50; }
+    form { margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 10px; }
+    input, button { padding: 8px; margin-top: 5px; width: 100%; max-width: 300px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #4CAF50; color: white; }
+    button { background: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    button:hover { background: #45a049; }
+  </style>
+  <script>
+    let db;
+    document.addEventListener("DOMContentLoaded", () => {
+      let request = indexedDB.open("VitaminDDB", 1);
+      request.onupgradeneeded = e => {
+        db = e.target.result;
+        db.createObjectStore("sessions", { keyPath: "id", autoIncrement: true });
+      };
+      request.onsuccess = e => {
+        db = e.target.result;
+        loadSessions();
+      };
+
+      document.getElementById("trackerForm").addEventListener("submit", saveSession);
+      document.getElementById("downloadCSV").addEventListener("click", downloadCSV);
+    });
+
+    async function fetchUVIndex(date, latitude, longitude) {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=uv_index&start_date=${date}&end_date=${date}`;
+        let response = await fetch(url);
+        let data = await response.json();
+        return data.hourly.uv_index[12]; // approx noon
+      } catch (e) {
+        console.error("UV fetch error", e);
+        return null;
+      }
+    }
+
+    async function saveSession(e) {
+      e.preventDefault();
+      let date = document.getElementById("date").value;
+      let start = document.getElementById("start").value;
+      let end = document.getElementById("end").value;
+      let uv = document.getElementById("uv").value;
+
+      if (!uv) {
+        uv = await fetchUVIndex(date, 13.0827, 80.2707); // default Chennai coords
+      }
+
+      let tx = db.transaction("sessions", "readwrite");
+      let store = tx.objectStore("sessions");
+      store.add({ date, start, end, uv });
+      tx.oncomplete = () => loadSessions();
+      document.getElementById("trackerForm").reset();
+    }
+
+    function loadSessions() {
+      let tx = db.transaction("sessions", "readonly");
+      let store = tx.objectStore("sessions");
+      let req = store.getAll();
+      req.onsuccess = () => {
+        let sessions = req.result;
+        let table = document.getElementById("dataTable");
+        table.innerHTML = "<tr><th>Date</th><th>Start</th><th>End</th><th>UV Index</th></tr>";
+        sessions.forEach(s => {
+          table.innerHTML += `<tr><td>${s.date}</td><td>${s.start}</td><td>${s.end}</td><td>${s.uv ?? ''}</td></tr>`;
+        });
+      };
+    }
+
+    function downloadCSV() {
+      let tx = db.transaction("sessions", "readonly");
+      let store = tx.objectStore("sessions");
+      let req = store.getAll();
+      req.onsuccess = () => {
+        let sessions = req.result;
+        let csv = "Date,Start,End,UV Index\n";
+        sessions.forEach(s => {
+          csv += `${s.date},${s.start},${s.end},${s.uv ?? ''}\n`;
+        });
+        let blob = new Blob([csv], { type: "text/csv" });
+        let a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "vitaminD.csv";
+        a.click();
+      };
+    }
+  </script>
+</head>
+<body>
+  <h1>Vitamin D Tracker</h1>
+  <form id="trackerForm">
+    <label>Date: <input type="date" id="date" required></label>
+    <label>Start Time: <input type="time" id="start" required></label>
+    <label>End Time: <input type="time" id="end" required></label>
+    <label>UV Index (leave empty to auto-fetch): <input type="number" step="0.1" id="uv"></label>
+    <button type="submit">Save Session</button>
+  </form>
+  <button id="downloadCSV">Download CSV</button>
+  <table id="dataTable"></table>
+</body>
+</html>
